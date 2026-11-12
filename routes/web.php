@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MatchController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SwapRequestController;
 use App\Http\Controllers\UserSkillController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +23,13 @@ Route::middleware(['guest'])->group(function () {
 // Authenticated users
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Profile
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/users/{user}', [ProfileController::class, 'show'])
+        ->whereNumber('user')
+        ->name('users.show');
 
     // Profile Skills
     Route::get('/profile/skills', [UserSkillController::class, 'index'])->name('profile.skills.index');
@@ -47,7 +56,14 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/swap-requests/{swapRequest}', [SwapRequestController::class, 'update'])
         ->whereNumber('swapRequest')
         ->name('swap.request.update');
-    Route::post('/swap-requests/{swapRequest}/messages', [SwapRequestController::class, 'storeMessage'])
-        ->whereNumber('swapRequest')
-        ->name('swap.request.messages.store');
+
+    // Direct messages
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/{user}', [MessageController::class, 'show'])
+        ->whereNumber('user')
+        ->name('messages.show');
+    Route::post('/messages/{user}', [MessageController::class, 'store'])
+        ->whereNumber('user')
+        ->middleware('throttle:30,1')
+        ->name('messages.store');
 });

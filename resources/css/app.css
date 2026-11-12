@@ -6,6 +6,22 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Larger type scale: every text-* class is one step bigger than Tailwind's default. */
+    --text-xs: 1rem;
+    --text-xs--line-height: 1.5rem;
+    --text-sm: 1.125rem;
+    --text-sm--line-height: 1.75rem;
+    --text-base: 1.25rem;
+    --text-base--line-height: 1.875rem;
+    --text-lg: 1.5rem;
+    --text-lg--line-height: 2rem;
+    --text-xl: 1.875rem;
+    --text-xl--line-height: 2.25rem;
+    --text-2xl: 2.25rem;
+    --text-2xl--line-height: 2.5rem;
+    --text-4xl: 3rem;
+    --text-4xl--line-height: 1.1;
 }
 
 /* ---------- Glassmorphism ---------- */
@@ -31,8 +47,8 @@
     backdrop-filter: blur(6px);
     min-height: 3rem;
     padding: 0.75rem 1rem;
-    font-size: 1rem;
-    line-height: 1.5rem;
+    font-size: 1.25rem;
+    line-height: 1.875rem;
     border-radius: 0.75rem;
 }
 

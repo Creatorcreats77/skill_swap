@@ -29,9 +29,11 @@
                     @endphp
 
                     <div class="glass-soft rounded-xl p-4 mb-3 last:mb-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex items-center gap-3">
+                          <a href="{{ route('users.show', $other) }}"><x-avatar :user="$other" size="md" /></a>
+                          <div class="min-w-0">
                             <div class="flex items-center gap-2">
-                                <span class="font-semibold text-gray-800">{{ $other->name }}</span>
+                                <a href="{{ route('users.show', $other) }}" class="font-semibold text-gray-800 hover:underline">{{ $other->name }}</a>
                                 @include('swap-requests.partials.status-badge', ['status' => $swapRequest->status])
                             </div>
                             <p class="text-sm text-gray-700 mt-1">
@@ -39,12 +41,13 @@
                                 · you teach <span class="font-semibold text-blue-700">{{ $youTeach->name }}</span>
                             </p>
                             <p class="text-xs text-gray-500 mt-0.5">{{ $swapRequest->created_at->diffForHumans() }}</p>
+                          </div>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2">
                             @include('swap-requests.partials.actions', ['swapRequest' => $swapRequest])
-                            <a href="{{ route('swap.request.show', $swapRequest) }}"
-                                class="text-sm font-semibold text-emerald-700 hover:underline px-2">Open chat →</a>
+                            <a href="{{ route('messages.show', $other) }}"
+                                class="text-sm font-semibold text-emerald-700 hover:underline px-2">💬 Message</a>
                         </div>
                     </div>
                 @empty

@@ -21,7 +21,9 @@
                     <ul class="mt-1 space-y-1 text-sm text-gray-700">
                         @forelse ($offerers as $person)
                             <li>
-                                {{ $person->name }}
+                                <a href="{{ route('users.show', $person) }}" class="inline-flex items-center gap-2 hover:underline">
+                                    <x-avatar :user="$person" size="sm" /> {{ $person->name }}
+                                </a>
                                 @if ($person->pivot->proficiency)
                                     <span class="text-xs text-gray-500">· {{ ucfirst($person->pivot->proficiency) }}</span>
                                 @endif
@@ -36,7 +38,11 @@
                     <span class="text-xs uppercase tracking-wider text-gray-500 font-bold">Who wants to learn it</span>
                     <ul class="mt-1 space-y-1 text-sm text-gray-700">
                         @forelse ($seekers as $person)
-                            <li>{{ $person->name }}</li>
+                            <li>
+                                <a href="{{ route('users.show', $person) }}" class="inline-flex items-center gap-2 hover:underline">
+                                    <x-avatar :user="$person" size="sm" /> {{ $person->name }}
+                                </a>
+                            </li>
                         @empty
                             <li class="text-gray-500">Nobody else yet.</li>
                         @endforelse

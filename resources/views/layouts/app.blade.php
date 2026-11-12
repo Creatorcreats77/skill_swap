@@ -15,7 +15,7 @@
 </head>
 
 <body
-    class="font-sans antialiased text-gray-900 min-h-screen bg-gradient-to-br from-emerald-200 via-green-100 to-teal-200">
+    class="font-sans antialiased text-gray-900 min-h-screen bg-gradient-to-br from-emerald-200 via-green-100 to-teal-200 text-base">
 
     <!-- Background blobs (give the glass something to blur) -->
     <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -51,7 +51,11 @@
 
                     <div class="flex items-center space-x-3">
                         @auth
-                        <span class="hidden sm:inline text-sm font-medium text-gray-800">{{ Auth::user()->name }}</span>
+                        <a href="{{ route('profile.edit') }}" title="My profile"
+                            class="flex items-center gap-2 rounded-full pr-2 hover:bg-white/40 transition {{ request()->routeIs('profile.edit') ? 'bg-white/60' : '' }}">
+                            <x-avatar :user="Auth::user()" size="sm" />
+                            <span class="hidden sm:inline text-sm font-medium text-gray-800">{{ Auth::user()->name }}</span>
+                        </a>
 
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

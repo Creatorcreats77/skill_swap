@@ -102,22 +102,66 @@ test('outsiders cannot view or touch a swap request', function () {
     $this->actingAs($this->stranger);
     $this->get(route('swap.request.show', $swap))->assertForbidden();
     $this->patch(route('swap.request.update', $swap), ['status' => 'declined'])->assertForbidden();
-    $this->post(route('swap.request.messages.store', $swap), ['body' => 'hi'])->assertForbidden();
 });
 
-test('participants can chat and the inbox lists the request', function () {
+test('opening a swap request leads to the chat with the other person', function () {
     $swap = makeRequest($this->me, $this->partner, $this->php, $this->guitar);
-
-    $this->actingAs($this->me)
-        ->post(route('swap.request.messages.store', $swap), ['body' => 'When are you free?'])
-        ->assertRedirect(route('swap.request.show', $swap));
 
     $this->actingAs($this->partner)
         ->get(route('swap.request.show', $swap))
-        ->assertOk()
-        ->assertSee('When are you free?');
+        ->assertRedirect(route('messages.show', $this->me));
 
-    expect($swap->messages()->first()->is_read)->toBeTrue();
+    $this->get(route('messages.show', $this->me))
+        ->assertOk()
+        ->assertSee('Accept')
+        ->assertSee('Decline');
 
     $this->get(route('swap.request.index'))->assertOk()->assertSee($this->me->name);
+});
+
+test('a request note is posted into the private chat', function () {
+    $this->actingAs($this->me)->post(route('swap.request.store'), [
+        'receiver_id' => $this->partner->id,
+        'offered_skill_id' => $this->php->id,
+        'requested_skill_id' => $this->guitar->id,
+        'initial_message' => 'Hi Gina, guitar for PHP?',
+    ]);
+
+    $this->actingAs($this->partner)
+        ->get(route('messages.index'))
+        ->assertOk()
+        ->assertSee('Hi Gina, guitar for PHP?');
+});
+
+test('with no filters everyone who has skills is listed, best match first', function () {
+    User::factory()->create(['name' => 'Nora Noskills']);
+
+    $response = $this->actingAs($this->me)->get(route('matches.index'));
+
+    $response->assertOk()
+        ->assertSeeInOrder(['Gina Guitar', 'Sam Stranger'])
+        ->assertSee('Perfect match for you')
+        ->assertDontSee('Nora Noskills');
+
+    // The perfect match gets a pre-filled request: I learn Guitar, I teach PHP.
+    expect($response->viewData('suggestions')[$this->partner->id])
+        ->learn->toBe($this->guitar->id)
+        ->teach->toBe($this->php->id)
+        ->and($response->viewData('suggestions')[$this->stranger->id]['teach'])->toBeNull();
+});
+
+test('people can be filtered by a single skill or by name', function () {
+    $this->actingAs($this->me);
+
+    $this->get(route('matches.index', ['wanted_skill_id' => $this->guitar->id]))
+        ->assertSee('Gina Guitar')
+        ->assertSee('Sam Stranger');
+
+    $this->get(route('matches.index', ['offered_skill_id' => $this->php->id]))
+        ->assertSee('Gina Guitar')
+        ->assertDontSee('Sam Stranger');
+
+    $this->get(route('matches.index', ['q' => 'sam']))
+        ->assertSee('Sam Stranger')
+        ->assertDontSee('Gina Guitar');
 });

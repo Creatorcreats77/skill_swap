@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Conversation;
 use App\Models\SwapRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -59,7 +60,7 @@ class SwapRequestController extends Controller
             return back()->with('success', 'You already have a pending request with this user for that swap.');
         }
 
-        $user->sentSwapRequests()->create([
+        $swapRequest = $user->sentSwapRequests()->create([
             'receiver_id' => $validated['receiver_id'],
             'offered_skill_id' => $validated['offered_skill_id'],
             'requested_skill_id' => $validated['requested_skill_id'],
@@ -67,33 +68,24 @@ class SwapRequestController extends Controller
             'status' => 'pending',
         ]);
 
+        // The note also lands in the private chat, so the receiver sees it in Messages.
+        if (filled($swapRequest->initial_message)) {
+            Conversation::between($user, User::findOrFail($validated['receiver_id']))
+                ->send($user, $swapRequest->initial_message, $swapRequest);
+        }
+
         return back()->with('success', 'Swap request sent!');
     }
 
     /**
-     * Conversation view for a single request.
+     * Requests are discussed in the private chat with the other person.
      */
-    public function show(Request $request, SwapRequest $swapRequest): View
+    public function show(Request $request, SwapRequest $swapRequest): RedirectResponse
     {
-        $this->ensureParticipant($request->user(), $swapRequest);
+        $user = $request->user();
+        $this->ensureParticipant($user, $swapRequest);
 
-        $swapRequest->load([
-            'sender',
-            'receiver',
-            'offeredSkill',
-            'requestedSkill',
-            'messages' => fn ($query) => $query->with('sender')->oldest()->orderBy('id'),
-        ]);
-
-        // Mark the other person's messages as read.
-        $swapRequest->messages()
-            ->where('sender_id', '!=', $request->user()->id)
-            ->where('is_read', false)
-            ->update(['is_read' => true]);
-
-        return view('swap-requests.show', [
-            'swapRequest' => $swapRequest,
-        ]);
+        return redirect()->route('messages.show', $swapRequest->otherParty($user));
     }
 
     /**
@@ -123,25 +115,6 @@ class SwapRequestController extends Controller
         $swapRequest->update(['status' => $status]);
 
         return back()->with('success', "Swap request marked as {$status}.");
-    }
-
-    public function storeMessage(Request $request, SwapRequest $swapRequest): RedirectResponse
-    {
-        $user = $request->user();
-        $this->ensureParticipant($user, $swapRequest);
-
-        abort_if($swapRequest->status === 'declined', 403);
-
-        $validated = $request->validate([
-            'body' => ['required', 'string', 'max:2000'],
-        ]);
-
-        $swapRequest->messages()->create([
-            'sender_id' => $user->id,
-            'body' => $validated['body'],
-        ]);
-
-        return redirect()->route('swap.request.show', $swapRequest);
     }
 
     private function ensureParticipant(User $user, SwapRequest $swapRequest): void
