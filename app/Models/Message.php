@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,16 @@ class Message extends Model
         'body',
         'is_read',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_read' => 'boolean',
+        ];
+    }
 
     public function swapRequest()
     {

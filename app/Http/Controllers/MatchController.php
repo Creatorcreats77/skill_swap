@@ -2,36 +2,54 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Skill;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class MatchController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * A match is any other user who teaches what you want to learn and wants to learn what you teach.
+     */
+    public function index(Request $request): View
     {
-        $user = Auth::user();
-        $wantedSkillId = $request->input('wanted_skill_id');     // What you want to learn
-        $offeredSkillId = $request->input('offered_skill_id'); // What you are teaching
+        $validated = $request->validate([
+            'wanted_skill_id' => ['nullable', 'integer', 'exists:skills,id'],
+            'offered_skill_id' => ['nullable', 'integer', 'exists:skills,id'],
+        ]);
+
+        $user = $request->user();
+        $wantedSkillId = isset($validated['wanted_skill_id']) ? (int) $validated['wanted_skill_id'] : null;
+        $offeredSkillId = isset($validated['offered_skill_id']) ? (int) $validated['offered_skill_id'] : null;
 
         $matches = collect();
+        $pendingReceiverIds = [];
 
         if ($wantedSkillId && $offeredSkillId) {
-            $matches = User::where('id', '!=', $user->id)
-                ->whereHas('skills', function ($q) use ($wantedSkillId) {
-                    $q->where('skills.id', $wantedSkillId)
-                        ->where('user_skills.type', 'offered');
-                })
-                ->whereHas('skills', function ($q) use ($offeredSkillId) {
-                    $q->where('skills.id', $offeredSkillId)
-                        ->where('user_skills.type', 'wanted');
-                })
-                ->with(['skills'])
+            $matches = User::query()
+                ->whereKeyNot($user->id)
+                ->matching($wantedSkillId, $offeredSkillId)
+                ->with(['offeredSkills', 'wantedSkills'])
+                ->orderBy('name')
                 ->get();
+
+            $pendingReceiverIds = $user->sentSwapRequests()
+                ->where('status', 'pending')
+                ->where('offered_skill_id', $offeredSkillId)
+                ->where('requested_skill_id', $wantedSkillId)
+                ->pluck('receiver_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
         }
 
-        $allSkills = \App\Models\Skill::all();
-
-        return view('matches.index', compact('matches', 'allSkills', 'wantedSkillId', 'offeredSkillId'));
+        return view('matches.index', [
+            'matches' => $matches,
+            'allSkills' => Skill::orderBy('name')->get(),
+            'wantedSkillId' => $wantedSkillId,
+            'offeredSkillId' => $offeredSkillId,
+            'pendingReceiverIds' => $pendingReceiverIds,
+            'hasSkills' => $user->skills()->exists(),
+        ]);
     }
 }

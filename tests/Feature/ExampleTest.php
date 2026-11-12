@@ -1,19 +1,18 @@
 <?php
 
-namespace Tests\Feature;
+use App\Models\User;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+test('guests are sent to the login page', function () {
+    $this->get('/')->assertRedirect(route('matches.index'));
+    $this->get(route('matches.index'))->assertRedirect(route('login'));
+});
 
-class ExampleTest extends TestCase
-{
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
-    {
-        $response = $this->get('/');
+test('signed in users can open every main page', function () {
+    $user = User::factory()->create();
 
-        $response->assertStatus(200);
+    $this->actingAs($user);
+
+    foreach (['matches.index', 'profile.skills.index', 'profile.skills.edit', 'profile.skills.create', 'swap.request.index'] as $route) {
+        $this->get(route($route))->assertOk();
     }
-}
+});
